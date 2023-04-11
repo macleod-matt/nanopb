@@ -1,0 +1,196 @@
+
+syntax = "proto3";
+import "nanopb.proto";
+
+// special enum types for each ID
+enum MessageID {
+   INVALID = 0; 
+   FORCE = 1;
+   ACCEL = 2;
+   TEMP = 3;
+   BAT = 4; 
+   TIME = 5; 
+   MIC = 6; 
+   CMD = 7; 
+   SRIMSTATUS = 8;
+   MFTMSTATUS = 9;
+   ACCELCFG= 10; //use when attempting to configure driver apis for accelerometer
+   TEMPCFG= 11; //use when attempting to configure driver apis for temp controller
+   FORCECFG= 12; //use when attempting to configure driver apis for force sensors
+   MICCFG = 13; //use when intending to enable pdm driver for microphone
+   SENSECFG = 14; //use when attempting to configure sensors by sending a SmartToolConfigModel
+
+}
+
+// enum types for each destination ID (chosen to be arbitrary values that are un likley to be seen within other packet preamble)
+enum DestinationID{ 
+   ERRDEST = 0; // each enum must start with zero (proto 3 things)
+   MFTM = 55;  // ID for Peripheral device or embedded sensor board: Multi-sensor Fusion and Transmission Module (MTFM) 
+   SRIM = 66;  // ID for Central Device: Signal Reception and Integration Module
+   HOSTPC = 77; // ID for Host PC device 
+}
+
+//enum for hardware modes for PDM 
+enum PdmModes{ 
+   PDM_MODE_STEREO = 0;
+   PDM_MODE_MONO = 1; //default setting
+}
+
+// enum for the differnet messages between the Host PC, Central and Peripheral devices
+enum HostCommands { 
+   ERROR = 0 ; 
+   start = 1;  // command to MFTM to start
+   stop = 2;  // command to MFTM to stop 
+   low_power_mode= 3; // command to SRIM to indicate low power status 
+   send_status= 4; // command to either SRIM or MFTM to send their diagnostics
+   reset = 5; // command to reset either the SRIM or MFTM
+   sensor_config =6;
+}
+
+//generic message for sensor configurations so that any new requests can be sent over the wire 
+message MftmConfig{
+	Kx134Config	kx134Config =1;
+	ads124s08Config adsConfig =2;
+	saadcConfig saadcConfig =3;
+	micConfig micConfig = 4;
+}
+
+//configuration for user to configure the output paramters of the kx134 accelerometer 
+//odr range: 0-15600, g_range: 0-+/-65g, resolution:8/16bit
+message Kx134Config{ 
+   bool enabled = 1; //allows user to enable/disable the driver (default: true)
+	int32 odr =2; //must be in the range (0-15). Default is 14 i.e 12800 hz
+	int32 gRange =3; //must be in range (0-3). Default is 2 i.e 64 g 
+	int32 resolution=4;  //default is 16 bit . Default is 1 i.e 16 bit 
+}
+
+//configuration for the ads124s08 adc controller used for temperature 
+//by default: chan0 = chans4_5, chan1 = chan6_7, chan3 = internal temp 
+//by default odr is 20sps/3 channels = approx 6hz 
+message ads124s08Config{ 
+   bool enabled = 1; //allows user to enable/disable the driver (default: true)
+	int32 odr = 2; //set to 100 for smart tool 
+	bool enableChan0 =3; //set to false by default 
+	bool enableChan1 =4; //set to false by default 
+	bool enableChan2 =5; //set to TRUE by default 
+	bool enableChan3 =6; //set to TRUE by default 
+	bool enableChan4 =7; //set to false by default 
+	bool enableChan5 =8; //set to false by default 
+}
+
+message saadcConfig { 
+   bool enabled = 1; //allows user to enable/disable the driver (default: true)
+	int32 odr =2; 
+	bool enableChan0 =3; //set to TRUE by default (only set to false if you wish to disable battery channel)
+	bool enableChan1 =4; //set to TRUE by default 
+	bool enableChan2 =5; //set to False by default 
+	bool enableChan3 =6; //set to false by default 
+	bool enableChan4 =7; //set to false by default 
+	bool enableChan5 =8; //set to false by default 
+	bool enableBatteryChan =9; //set to True by default 
+	bool enableChan7 =10; //set to false by default 
+}
+
+
+
+message micConfig{ 
+   bool enabled = 1;
+   PdmModes mode = 2; //mono = 1 (default), stereo = 0 (for utilizing 2 mics only) 
+}
+// Accel data is int16 (not supported by protobuf messaging) 
+// Array of KX134_FIFO_THRESHOLD int16 samples (x,y,z) interleaved 
+// For value of KX134_FIFO_THRESHOLD see kx134.h file 
+// As of June 20, 2022 had been set to 37 
+// Revision June 22, 2022 WMI int has been set to 39 corresponding to 234 bytes
+message Acceleration {
+
+   bytes data = 1 [(nanopb).max_size = 234,(nanopb).fixed_length= true];
+   
+   // repeated bytes data = 1 ;  //un-comment for using within protobuf (not nanopb program)
+
+}
+
+
+
+//RAW PDM-to-PCM data bytes for microphone
+// at present, only configured for mono mode, hardware has support for stereo mode 
+// at preasent PCM samples consist of 110 16 bit samples or represnenting a 220 raw byte buffer  
+message Microphone {
+
+   bytes data = 1 [(nanopb).max_size = 128,(nanopb).fixed_length= true];
+   
+   // repeated bytes data = 1 ; //un-comment for using within protobuf (not nanopb program)
+}
+
+
+
+
+//reads 24 bit temperatre samples from adc 
+//driver code automatically alternates between measuring the CJC (internal temp onboard the IC)
+// and the ADC measured temp val (both are raw values representing voltage (mV) and need to be corolated with type K tables )
+// at present, we will leave the channels 3 - 7 commented out. The driver API will support all channels, however the tool sense board has not yet been populated with more thant 2 temp sensors
+message Temperature {
+   uint32 voltage_internal=1; 
+   uint32 voltage_channel1 =2; 
+   uint32 voltage_channel2 =3; 
+   // int32 voltage_channel3 =4; 
+   // int32 voltage_channel4 =5;
+   // int32 voltage_channel5 =6; 
+   // int32 voltage_channel6 =7; 
+
+}
+
+// reads 16 bit adc value from force sensor 
+//values will be linearized according to the NRC specification (to be added to this documentation)
+//since each sample is a single shot 16 bit adc value per channel and we ahve 2 channels we will just send each channel as a group of 2 (chan0,chan1) ... (chan6,chan7)
+//To meet the ODR of 6khz, saadc samples needed to be taken at 165us intervals 
+// This caused the cpu to hang in the adc ISR for too long when single-sample sampling 
+// As a result we send larger sample buffers to reduce the cpu time spent in the isr to retreive samples (which would block the ble conn interval) 
+// At 165us samples x 117 (16 bit samples) sample buffers = 19.305 ms~ 19ms > 7.5ms -> 117/3 = 39 samples/axis 
+//upond reading from the saadc isr, the samples are read in conteqious blocks as chan0,chan1,chan2... chan7 upon each interrupt so we will have to ignore the third enabled channel for battery voltage when attemptring to read the force sensor
+//Sample buffer had to comply with 251 BLE limitation, we choose 117 saass the sample buffersize, since they are 16 bit samples whucih results in a 234 byte payload size, which maintains consistancy with the accelerometer packets
+message Force {
+   bytes data = 1 [(nanopb).max_size =234 ,(nanopb).fixed_length= true];
+}
+
+// ODR frequency data. uint32 cpu cycles to measure time stamps converted from the WMI buffer (see kx134.c)
+// time stamps are sent every 300 HW kx134 WMI ~  1/sec 
+message OdrFreqData {
+ 
+   uint32  odr_frequency_tenth_hz=1; // actual WMI interrupt
+   uint32  odr_delta_tenth_hz=2; // delta between min and max cycles, over time will provide sense of stability between the api calls
+}
+
+// At present we will use this message to report the current battery voltage level in mV (integer)
+// batter is recieved as a single shot adc value (16 bit)
+// due to requirments from the ADC api configuration, the battery samples had to be measured in the same precision as the force sensors (12 bit)
+message Battery {
+   int32 mv_reading =1; 
+}
+
+
+// 2 way messages between peripheral (MTFM) and Central (Host-PC)
+// at present, each command will be a single 32 bit command sent from central
+message HostPC{ 
+   int32 command = 1;  
+}
+
+// message for BLE connection status ( to be sent from Central device)
+// at present, Sequencing will go: 
+
+message SrimStatus { 
+   double firmware_version = 1; // send firmware version back to host pc
+   bool central_ready = 2; // central should always be ready (simple hand shake ack)
+   bool ble_connected =3; // this will turn true if ble connection between peripheral is negotuiated  
+}
+
+
+// status message for mftm so that the host pc knows what snesors have been enabled/disabled in firmware/hardware
+message MftmStatus { 
+   double firmware_version = 1; // send firmware version back to host pc
+   bool peripheral_ready =2; // simple ack showing peripheral is ready  
+   bool accel_connected =3; //simple ack showing accelerometer is connected and ready
+   int32 temp_connected =4;  // simple ack showiung that the ads124s08 temp sensor is ready (value should indicate )
+   int32 force_connected =5;  // simple ack showing number of forece sensors conected (at presenr can be 0,1 or 2)
+   int32 mic_connected =6;   // simple acj showing number of microphones detected (can be 0 ,1 or 2 )
+} 
