@@ -1,6 +1,6 @@
 
 
-# Repository to Maintain Latest Rainhouse NanoPB Library #
+# Fast Protobuf Library for Embedded Applications #
 - Author Matt MacLeod
 - Last Updated 2023/04/10
 ********
