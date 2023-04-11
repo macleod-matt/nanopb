@@ -33,10 +33,14 @@ int main(){
   PB_MESSAGE_ENCODE(Temperature, &msg_temp, &temp_encode_buff,temp_bytes ); 
   //do somehting: e.g.) transmit data over micro service/grpc stream 
 
+  if(status_bytes > 0  && temp_bytes > 0){ 
+    PB_MESSAGE_DECODE(MftmStatus, &status_encode_buff, pmsg_status,status_bytes ); 
+    PB_MESSAGE_DECODE(Temperature, &temp_encode_buff, pmsg_temp,temp_bytes ); 
+  }
 
-  PB_MESSAGE_DECODE(MftmStatus, &status_encode_buff, pmsg_status,status_bytes ); 
-  PB_MESSAGE_DECODE(Temperature, &temp_encode_buff, pmsg_temp,temp_bytes ); 
+  if(pmsg_status != NULL && pmsg_temp != NULL){ 
+    //do something with pointers to decoded data pmsg_status, pmsg_temp
 
-  //do something with pointers to decoded data pmsg_status, pmsg_temp
+  }
 
 }
