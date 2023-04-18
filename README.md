@@ -3,17 +3,16 @@
 # Fast Protobuf Library for Embedded Applications #
 - Author Matt MacLeod
 - Last Updated 2023/04/10
-********
 
 ## Summary
-********
+
 Fast, light weight, generic protobuf serialization library for embedded applications 
 
 The proto instances are copied over from a previous project that required the serialization of multiple sensors instances (see sensor.proto)
 
  
 ## API: 
-********
+
 
 Instead of requiring a specific test case for every proto instance, the serialize/deserialization apis from NanoPB have been extrapolated into the following macros for 
 
@@ -54,7 +53,6 @@ if(encoded_bytes > 0){
 Successfully encoded 17 bytes
 
 ```
-********
 
 >**PB_MESSAGE_DECODE(type, src, dest, len )**
 
@@ -89,20 +87,16 @@ Firmware Version = 1.0, Peripheral Ready = true, accel_ready = true, temp_con = 
 
 
 ```
-********
-
-
-
 
 ## Background: 
-********
+
 
 - Protobufers are intended for fast and light weight data serialization for micro services across comminication networks 
 
 
 ## Steps to integrate protobuf library into your project: 
 
-********
+
 
 1. Make any changes to the proto/sensor.proto file you wish 
 2. run compile-nanopb.bat 
